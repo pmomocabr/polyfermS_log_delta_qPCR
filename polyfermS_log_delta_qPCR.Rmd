@@ -195,7 +195,7 @@ plot_ratio_Stab_Treat_meta <- function(ps_new,
 }
 ```
 
-Save ratio dataframes and statistical analysis
+#Save ratio dataframes and statistical analysis
 
 ```{r}
 library(writexl)
@@ -207,3 +207,48 @@ library(writexl)
 write_xlsx(sample_pw_meta,"C:/Users/pmomocabr/Desktop/final_files/delta2/pre_statsdelta_EPEC_D3_P2_WP1.xlsx")
 ```
 
+
+#Final barplot EPEC qPCR all donors WP1
+```{r pressure, echo=FALSE}
+#Load all ratio calculations from all donors WP of interest
+df1_EPEC =read_excel("C:/Users/pmomocabr/Desktop/final_files/delta2/pre_statsdelta_EPEC_D1_P1_WP1.xlsx") 
+df2_EPEC =read_excel("C:/Users/pmomocabr/Desktop/final_files/delta2/pre_statsdelta_EPEC_D1_P2_WP1.xlsx") 
+df3_EPEC =read_excel("C:/Users/pmomocabr/Desktop/final_files/delta2/pre_statsdelta_EPEC_D2_P1_WP1.xlsx") 
+df4_EPEC =read_excel("C:/Users/pmomocabr/Desktop/final_files/delta2/pre_statsdelta_EPEC_D2_P2_WP1.xlsx") 
+df5_EPEC =read_excel("C:/Users/pmomocabr/Desktop/final_files/delta2/pre_statsdelta_EPEC_D3_P1_WP1.xlsx") 
+df6_EPEC =read_excel("C:/Users/pmomocabr/Desktop/final_files/delta2/pre_statsdelta_EPEC_D3_P2_WP1.xlsx") 
+df7_EPEC =read_excel("C:/Users/pmomocabr/Desktop/final_files/delta2/pre_statsdelta_EPEC_D4_P1_WP1.xlsx") 
+df8_EPEC =read_excel("C:/Users/pmomocabr/Desktop/final_files/delta2/pre_statsdelta_EPEC_D4_P2_WP1.xlsx") 
+
+#Join dataframes
+df_combined <- rbind(df1_EPEC, df2_EPEC, df3_EPEC, df4_EPEC, df5_EPEC, df6_EPEC, df7_EPEC, df8_EPEC)
+
+#Create bar plot with * indicating significant differences in delta change between IR and all other treatments.
+df_combined%>%
+  group_by(Period_B, Donor) %>%
+  wilcox_test(data= .,
+              formula = ratio ~ Treatment_B,
+              #ref.group="IR",
+              p.adjust.method ="fdr",
+              comparisons = list(c("IR", "IRON"), c("IR", "P204"), c("IR", "P204+IRON"),  c("IR", "P109"), c("IR", "P109+IRON"), c("IR", "P507"), c("IR", "P507+IRON"), c("IRON", "P204+IRON"),  c("IRON", "P109+IRON"), c("IRON", "P507+IRON"))
+  )%>%
+  add_significance()->wil
+stat.test <- wil %>% add_xy_position()
+
+ggplot(df_combined, aes(x=Treatment_B, y=ratio))+
+  stat_summary(geom="bar", fun=mean, position="dodge", aes(fill = Treatment_B))+
+  stat_summary(geom="errorbar", fun.data=mean_se, position="dodge") +
+  facet_grid(Period_B~Donor, scales="free", space="free_y")+ 
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+  
+  stat_pvalue_manual(stat.test, hide.ns = TRUE, label = "p.adj.signif")->p
+p + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+  stat_pvalue_manual(stat.test, hide.ns = TRUE, label = "p.adj.signif" )-> p2
+
+
+p2 +ggtitle("EPEC")  + theme(plot.title = element_text(face = "italic")) +
+  ylab("Δlog10(bacteria/ml)")+ xlab("Treatment") ->plot
+
+plot  
+
+
+```
